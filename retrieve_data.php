@@ -1,15 +1,28 @@
 <?php
-// تعيين نوع المحتوى للرد JSON
 header('Content-Type: application/json');
+$servername = "localhost";
+$username = "username";
+$password = "password";
+$dbname = "bls_liveness";
 
-// الحصول على قيمة user_id من الرابط
-$user_id = $_GET['user_id'] ?? null;
+$conn = new mysqli($servername, $username, $password, $dbname);
 
-if ($user_id) {
-    // إذا وجد user_id، أرسل استجابة نجاح مع القيمة
-    echo json_encode(['status' => 'success', 'user_id' => $user_id]);
-} else {
-    // إذا لم يُرسل user_id، أرسل رسالة خطأ
-    echo json_encode(['status' => 'error', 'message' => 'user_id missing']);
+if ($conn->connect_error) {
+    die(json_encode(["error" => "Connection failed: " . $conn->connect_error]));
 }
+
+$user_id = $_GET['user_id'];
+$sql = "SELECT * FROM liveness_data WHERE user_id = '$user_id'";
+$result = $conn->query($sql);
+
+if ($result->num_rows > 0) {
+    $data = [];
+    while($row = $result->fetch_assoc()) {
+        $data[] = $row;
+    }
+    echo json_encode($data);
+} else {
+    echo json_encode(["error" => "No data found"]);
+}
+$conn->close();
 ?>
