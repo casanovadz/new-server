@@ -1,8 +1,12 @@
-# استخدم صورة PHP مع Apache الرسمية (PHP 8.1 مع Apache)
 FROM php:8.1-apache
 
-# انسخ ملفات المشروع إلى مجلد الويب داخل الحاوية
+# نسخ ملفات التطبيق
 COPY . /var/www/html/
 
-# افتح المنفذ 80 (HTTP)
-EXPOSE 80
+# نسخ ملف إعدادات Apache
+COPY apache-config.conf /etc/apache2/sites-available/000-default.conf
+
+# تفعيل الإعدادات
+RUN a2enmod rewrite && \
+    chown -R www-data:www-data /var/www/html && \
+    chmod -R 755 /var/www/html

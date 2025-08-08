@@ -1,1 +1,11 @@
-ServerName localhost
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteBase /
+    
+    # توجيه API requests
+    RewriteRule ^retrieve_data\.php$ - [L]
+    RewriteRule ^get_ip\.php$ - [L]
+    
+    # إعدادات الأمان الأساسية
+    Options -Indexes
+</IfModule>
