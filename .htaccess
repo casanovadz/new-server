@@ -1,11 +1,26 @@
 <IfModule mod_rewrite.c>
     RewriteEngine On
-    RewriteBase /
     
-    # توجيه API requests
-    RewriteRule ^retrieve_data\.php$ - [L]
-    RewriteRule ^get_ip\.php$ - [L]
+    # إعادة التوجيه إلى HTTPS
+    RewriteCond %{HTTPS} off
+    RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI} [L,R=301]
     
-    # إعدادات الأمان الأساسية
-    Options -Indexes
+    # حماية ضد هجمات الـ XSS
+    Header set X-XSS-Protection "1; mode=block"
+    Header always append X-Frame-Options SAMEORIGIN
+    Header set X-Content-Type-Options nosniff
+    
+    # سياسة أمان المحتوى
+    Header set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline'"
+    
+    # تعطيل تخزين التتبع
+    Header set Referrer-Policy "strict-origin-when-cross-origin"
 </IfModule>
+
+# تعطيل سرد الملفات
+Options -Indexes
+
+# حماية ملفات حساسة
+<FilesMatch "\.(env|log|sql)$">
+    Require all denied
+</FilesMatch>

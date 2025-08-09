@@ -1,37 +1,47 @@
 <?php
 header('Content-Type: application/json');
-$data = json_decode(file_get_contents('php://input'), true);
+header('Access-Control-Allow-Origin: *');
 
-// سجل البيانات في قاعدة البيانات
-$servername = "localhost";
-$username = "username";
-$password = "password";
-$dbname = "bls_liveness";
+require 'db_connect.php'; // نستخدم نفس ملف الاتصال
 
-$conn = new mysqli($servername, $username, $password, $dbname);
+$input = json_decode(file_get_contents('php://input'), true);
 
-if ($conn->connect_error) {
-    die(json_encode(["error" => "Connection failed: " . $conn->connect_error]));
+if (!$input || !is_array($input)) {
+    http_response_code(400);
+    die(json_encode(['error' => 'Invalid input data']));
 }
 
-foreach($data as $entry) {
-    $spoof_ip = $entry['spoof_ip'];
-    $user_id = $entry['user_id'];
-    $transaction_id = $entry['transaction_id'];
-    $liveness_id = $entry['liveness_id'];
-
-    $sql = "INSERT INTO liveness_data (user_id, transaction_id, spoof_ip, liveness_id) 
-            VALUES ('$user_id', '$transaction_id', '$spoof_ip', '$liveness_id') 
-            ON DUPLICATE KEY UPDATE 
-            transaction_id='$transaction_id', spoof_ip='$spoof_ip', liveness_id='$liveness_id'";
-
-    if (!$conn->query($sql)) {
-        echo json_encode(["error" => "Error: " . $sql . "<br>" . $conn->error]);
-        $conn->close();
-        exit();
+try {
+    $pdo->beginTransaction();
+    
+    foreach ($input as $entry) {
+        $stmt = $pdo->prepare("
+            INSERT INTO liveness_data 
+            (user_id, transaction_id, spoof_ip, liveness_id, created_at)
+            VALUES (?, ?, ?, ?, NOW())
+            ON DUPLICATE KEY UPDATE
+            transaction_id = VALUES(transaction_id),
+            spoof_ip = VALUES(spoof_ip),
+            liveness_id = VALUES(liveness_id),
+            updated_at = NOW()
+        ");
+        
+        $stmt->execute([
+            $entry['user_id'] ?? null,
+            $entry['transaction_id'] ?? null,
+            $entry['spoof_ip'] ?? null,
+            $entry['liveness_id'] ?? null
+        ]);
     }
+    
+    $pdo->commit();
+    echo json_encode(['message' => 'Data saved successfully']);
+} catch (PDOException $e) {
+    $pdo->rollBack();
+    http_response_code(500);
+    echo json_encode([
+        'error' => 'Database error',
+        'details' => $e->getMessage()
+    ]);
 }
-
-echo json_encode(["message" => "Data saved successfully"]);
-$conn->close();
 ?>
