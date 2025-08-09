@@ -1,28 +1,37 @@
 <?php
-header('Content-Type: application/json');
-$servername = "localhost";
-$username = "username";
-$password = "password";
+// إعدادات الاتصال بقاعدة البيانات
+$servername = "127.0.0.1";
+$username = "root";
+$password = "123456"; // كلمة مرور MySQL التي وضعتها عند تشغيل الحاوية
 $dbname = "bls_liveness";
 
+// الاتصال بقاعدة البيانات
 $conn = new mysqli($servername, $username, $password, $dbname);
 
+// التحقق من الاتصال
 if ($conn->connect_error) {
-    die(json_encode(["error" => "Connection failed: " . $conn->connect_error]));
+    die(json_encode(["status" => "error", "message" => "Database connection failed"]));
 }
 
-$user_id = $_GET['user_id'];
-$sql = "SELECT * FROM liveness_data WHERE user_id = '$user_id'";
-$result = $conn->query($sql);
+// استقبال القيم من الرابط
+$user_id = isset($_GET['user_id']) ? $_GET['user_id'] : '';
+$selfie_url = isset($_GET['selfie_url']) ? $_GET['selfie_url'] : '';
 
-if ($result->num_rows > 0) {
-    $data = [];
-    while($row = $result->fetch_assoc()) {
-        $data[] = $row;
+if ($user_id && $selfie_url) {
+    // إدخال البيانات في الجدول
+    $stmt = $conn->prepare("INSERT INTO liveness_data (user_id, selfie_url, status) VALUES (?, ?, 'completed')");
+    $stmt->bind_param("ss", $user_id, $selfie_url);
+
+    if ($stmt->execute()) {
+        echo json_encode(["status" => "success", "message" => "Data saved successfully"]);
+    } else {
+        echo json_encode(["status" => "error", "message" => "Database insert failed"]);
     }
-    echo json_encode($data);
+
+    $stmt->close();
 } else {
-    echo json_encode(["error" => "No data found"]);
+    echo json_encode(["status" => "error", "message" => "Missing parameters"]);
 }
+
 $conn->close();
 ?>
