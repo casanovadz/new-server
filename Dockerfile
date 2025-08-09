@@ -1,5 +1,6 @@
 FROM php:8.1-apache
 
+# تثبيت التبعيات
 RUN apt-get update && apt-get install -y \
     libpng-dev \
     libonig-dev \
@@ -8,15 +9,15 @@ RUN apt-get update && apt-get install -y \
     unzip \
     && docker-php-ext-install pdo pdo_mysql
 
-WORKDIR /var/www/html
+# نسخ الملفات مباشرة (بدون مجلد فرعي)
+COPY .htaccess apache-config.conf db_connect.php favicon.ico get_ip.php index.php retrieve_data.php /var/www/html/
 
-# نسخ الملفات الفردية بدلاً من المجلد
-COPY apache-config.conf /etc/apache2/sites-available/000-default.conf
-COPY retrieve_data.php get_ip.php db_connect.php index.php .htaccess favicon.ico ./
-
-RUN chown -R www-data:www-data /var/www/html \
-    && a2enmod rewrite \
-    && a2enmod headers
+# تكوين Apache
+RUN cp /etc/apache2/sites-available/000-default.conf /etc/apache2/sites-available/000-default.conf.bak && \
+    cp /var/www/html/apache-config.conf /etc/apache2/sites-available/000-default.conf && \
+    chown -R www-data:www-data /var/www/html && \
+    a2enmod rewrite headers && \
+    a2ensite 000-default
 
 EXPOSE 80
 CMD ["apache2-foreground"]
